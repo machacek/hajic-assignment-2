@@ -16,10 +16,16 @@ def parse_args():
             help="An input file with words (one word per line)",
             type=argparse.FileType('r')
             )
+    
+    parser.add_argument("--distance",
+            help="Maximal distance of words (default 1 = bigrams)",
+            type=int,
+            default=1,
+            )
 
     return parser.parse_args()
 
-def n_gram_iterator(iterable, n=2):
+def n_gram_generator(iterable, n=2):
     iterator = iter(iterable)
     actual_n_gram = deque()
 
@@ -32,8 +38,20 @@ def n_gram_iterator(iterable, n=2):
         actual_n_gram.append(next(iterator))
         actual_n_gram.popleft()
 
-def compute_PMI(events_iterable):
-    # First, we are going to count all bigrams, first positions and second positions
+def distant_pairs_generator(iterable, max_distance=50):
+    iterator = iter(iterable)
+    queue = deque()
+
+    while True:
+        new_item = next(iterator)
+        for item in queue:
+            yield (item, new_item)
+        queue.append(new_item)
+        if len(queue) > max_distance:
+            queue.popleft()
+
+def compute_PMI(events_iterable, treshold):
+    # First, we are going to count all pairs, first positions and second positions
     pair_count = Counter(events_iterable)
     first_position_count = Counter(pair[0] for pair in pair_count.elements())
     second_position_count = Counter(pair[1] for pair in pair_count.elements())
@@ -43,10 +61,10 @@ def compute_PMI(events_iterable):
     # Second, let's remove less frequent words
     for pair in list(pair_count.keys()):
         first, second = pair
-        if first_position_count[first] < 10:
+        if first_position_count[first] < treshold:
             del first_position_count[first]
             del pair_count[pair]
-        if second_position_count[second] < 10:
+        if second_position_count[second] < treshold:
             del second_position_count[second]
             del pair_count[pair]
 
@@ -66,14 +84,12 @@ def compute_PMI(events_iterable):
 def main(): 
     args = parse_args()
 
-    # Get the bigrams iterator
     stripped = (line.strip() for line in args.input)
-    bigrams = n_gram_iterator(stripped, n=2)
-
-    PMI = compute_PMI(bigrams)
+    pairs = distant_pairs_generator(stripped, max_distance=args.distance)
+    PMI = compute_PMI(pairs, 10 * args.distance)
 
     for pair, pmi in PMI.most_common():
-        print(pair, pmi)
+        print(" ".join(pair), pmi)
 
 if __name__ == '__main__':
     main()
