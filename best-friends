@@ -25,19 +25,6 @@ def parse_args():
 
     return parser.parse_args()
 
-def n_gram_generator(iterable, n=2):
-    iterator = iter(iterable)
-    actual_n_gram = deque()
-
-    # fill the first n items to deque
-    for _ in range(n):
-        actual_n_gram.append(next(iterator))
-
-    while True:
-        yield tuple(actual_n_gram)
-        actual_n_gram.append(next(iterator))
-        actual_n_gram.popleft()
-
 def distant_pairs_generator(iterable, max_distance=50):
     iterator = iter(iterable)
     queue = deque()
