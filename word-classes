@@ -56,12 +56,33 @@ class MergableClass(object):
         pass
 
 class SparseMatrixCounter(object):
-    def __init__(self, iterable=tuple()):
+    def __init__(self, iterable=None):
         self.rows = defaultdict(Counter)
         self.collumns = defaultdict(Counter)
-        for x, y in iterable:
-            self.rows[x][y]     += 1
-            self.collumns[y][x] += 1
+
+        if iterable is not None:
+            self.update(iterable)
+
+    def update(self, iterable):
+        if isinstance(iterable, dict): 
+            for (x,y), value in iterable.items():
+                self.add(x,y,value)
+        else:
+            for x, y in iterable:
+                self.add(x,y,1)
+    
+    def __set__(self, index, value):
+        row_index, collumn_index = index
+        self.rows[row_index][collumn_index]     = value
+        self.collumns[collumn_index][row_index] = value
+    
+    def __get__(self, index):
+        row_index, collumn_index = index
+        return self.rows.get(row_index, Counter())[collumn_index]
+
+    def add(self, row_index, collumn_index, n=1)
+        self.rows[row_index][collumn_index]     += n
+        self.collumns[collumn_index][row_index] += n
 
     def get_row(self, row_index):
         return self.rows.get(row_index, Counter())
@@ -81,30 +102,58 @@ class SparseMatrixCounter(object):
             del self.rows[row_index][collumn_index]
         return collumn
 
-    def add_row(self, row_index, row):
+    def insert_row(self, row_index, row):
         self.pop_row(row_index)
         self.rows[row_index] = row
         for collumn_index, value in row.items():
             self.collumns[collumn_index][row_index] = value
     
-    def add_collumn(self, collumn_index, collumn):
+    def insert_collumn(self, collumn_index, collumn):
         self.pop_collumn(collumn_index)
         self.collumns[collumn_index] = collumn
         for row_index, value in collumn.items():
             self.rows[row_index][collumn_index] = value
 
-    def get(self, row_index, collumn_index):
-        if self.rows.get(row_index, Counter())[collumn_index]
+    def __iter__(self):
+        pass
 
-class SmartTable(object):
+
+class WordClasses(object):
     def __init__(self, words):
-        self.words = list(words) 
+
+        # Load the data
+        words = list(words) 
+        bigrams = list(n_gram_generator(self.words, 2))
+
+        # Initialize data structures
         self.class_set = {MergableClass(word) for word in words}
-        self.bigram_counter = SparseMatrixCounter(
-                (MergableClass(left), MergableClass(right)) 
-                for left, right 
-                in n_gram_generator(words, 2)
-                )
+        self.N = len(bigrams)
+        self.bigrams_counter = SparseMatrixCounter(bigrams)
+        self.left_counter = Counter(left for left, right in bigrams)
+        self.right_counter = Counter(right for left, right in bigrams)
+        self.bigrams_logs = SparseMatrixCounter({
+            bigram : self.bigrams_counter[bigram] / self.N * log2(self.N * self.bigrams_counter[bigram] / (self.left_counter[bigram[0]] * self.right_counter[bigram[1]]))
+            for bigram in set(bigrams) 
+            })
+
+    def merge(self, cls_1, cls_2):
+        "Merge the classes and update data structures"
+        merged = cls_1 | cls_2
+
+        # Update current set of classes
+        self.class_set.remove(cls_1)
+        self.class_set.remove(cls_2)
+        self.class_set.add(merged)
+
+        # Update bigram count table
+        merged_row = self.bigrams_counter.pop_row(cls_1) + self.bigrams_counter.pop_row(cls2)
+        self.bigrams_counter.insert_row(merged, merged_row)
+        merged_collumn = self.bigrams_counter.pop_collumn(cls_1) + self.bigrams_counter.pop_collumn(cls2)
+        self.bigrams_counter.insert_collumn(merged, merged_collumn)
+
+        # Update marginal counts
+        self.left_counter[merged] = self.left_counter.pop(cls_1,0) + self.left_counter.pop(cls_2,0)
+        self.right_counter[merged] = self.right_counter.pop(cls_1,0) + self.right_counter.pop(cls_2,0)
 
     def best_merge(self):
         "return the tuple of classes with highest MI change"
@@ -115,8 +164,9 @@ class SmartTable(object):
         k, l = to_be_merged
         ...
 
-    def merge(self, to_be_merged):
-        k, l = to_be_merged
+
+
+
 
 
 
