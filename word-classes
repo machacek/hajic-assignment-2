@@ -114,26 +114,33 @@ class SparseMatrixCounter(object):
         for row_index, value in collumn.items():
             self.rows[row_index][collumn_index] = value
 
-    def __iter__(self):
-        pass
+    def items(self):
+        for row_index, row in self.rows.items():
+            for collumn_index, value in row.items():
+                index = (row_index, collumn_index)
+                yield index, value 
 
+    def __iter__(self):
+        for row_index, row in self.rows.items():
+            for collumn_index in row:
+                yield row_index, collumn_index
 
 class WordClasses(object):
     def __init__(self, words):
 
         # Load the data
-        words = list(words) 
-        bigrams = list(n_gram_generator(self.words, 2))
+        classes = list(MergableClass(word) for word in words) 
+        bigrams = list(n_gram_generator(classes, 2))
 
         # Initialize data structures
-        self.class_set = {MergableClass(word) for word in words}
+        self.class_set = {classes}
         self.N = len(bigrams)
         self.bigrams_counter = SparseMatrixCounter(bigrams)
         self.left_counter = Counter(left for left, right in bigrams)
         self.right_counter = Counter(right for left, right in bigrams)
         self.bigrams_logs = SparseMatrixCounter({
             bigram : self.bigrams_counter[bigram] / self.N * log2(self.N * self.bigrams_counter[bigram] / (self.left_counter[bigram[0]] * self.right_counter[bigram[1]]))
-            for bigram in set(bigrams) 
+            for bigram in self.bigrams_counter 
             })
 
     def merge(self, cls_1, cls_2):
