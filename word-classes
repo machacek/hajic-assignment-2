@@ -1,0 +1,135 @@
+#!/usr/bin/env python3
+
+# Std library imports
+import argparse
+from itertools import combinations
+from collections import defaultdict, Counter
+from math import log2
+
+def parse_args():
+    
+    parser = argparse.ArgumentParser(
+            description="Compute the word classed for given input",
+            epilog="Author: Matous Machacek <machacekmatous@gmail.com>",
+            )
+
+    parser.add_argument("input",
+            help="An input file with words (one word per line)",
+            type=argparse.FileType('r')
+            )
+
+    return parser.parse_args()
+
+def n_gram_generator(iterable, n=2):
+    iterator = iter(iterable)
+    actual_n_gram = deque()
+
+    # fill the first n items to deque
+    for _ in range(n):
+        actual_n_gram.append(next(iterator))
+
+    while True:
+        yield tuple(actual_n_gram)
+        actual_n_gram.append(next(iterator))
+        actual_n_gram.popleft()
+
+class MergableClass(object):
+    def __new__(cls, first, second=None):
+        if isinstance(first, str) and second is None:
+            return cls.MergableClassLeafeNode(first)
+        elif isinstance(first, cls.MergableClassBase) and isinstance(second, cls.MergableClassBase):
+            return cls.MergableClassInnerNode(sorted((first, second), key=hash))
+        else:
+            raise TypeError("Constructor accepts one string or two MergableClasses")
+
+    class MergableClassBase(object):
+        def __or__(self, other):
+            return MergableClass(self, other)
+
+        def merge(self, other):
+            return MergableClass(self, other)
+
+    class MergableClassLeafeNode(str, MergableClassBase):
+        pass
+
+    class MergableClassInnerNode(tuple, MergableClassBase):
+        pass
+
+class SparseMatrixCounter(object):
+    def __init__(self, iterable=tuple()):
+        self.rows = defaultdict(Counter)
+        self.collumns = defaultdict(Counter)
+        for x, y in iterable:
+            self.rows[x][y]     += 1
+            self.collumns[y][x] += 1
+
+    def get_row(self, row_index):
+        return self.rows.get(row_index, Counter())
+    
+    def get_collumn(self, collumn_index):
+        return self.collumns.get(collumn_index, Counter())
+    
+    def pop_row(self, row_index):
+        row = self.rows.pop(row_index, Counter())
+        for collumn_index in row:
+            del self.collumns[collumn_index][row_index]
+        return row
+    
+    def pop_collumn(self, collumn_index):
+        collumn = self.collumns.pop(collumn_index, Counter())
+        for row_index in collumn:
+            del self.rows[row_index][collumn_index]
+        return collumn
+
+    def add_row(self, row_index, row):
+        self.pop_row(row_index)
+        self.rows[row_index] = row
+        for collumn_index, value in row.items():
+            self.collumns[collumn_index][row_index] = value
+    
+    def add_collumn(self, collumn_index, collumn):
+        self.pop_collumn(collumn_index)
+        self.collumns[collumn_index] = collumn
+        for row_index, value in collumn.items():
+            self.rows[row_index][collumn_index] = value
+
+    def get(self, row_index, collumn_index):
+        if self.rows.get(row_index, Counter())[collumn_index]
+
+class SmartTable(object):
+    def __init__(self, words):
+        self.words = list(words) 
+        self.class_set = {MergableClass(word) for word in words}
+        self.bigram_counter = SparseMatrixCounter(
+                (MergableClass(left), MergableClass(right)) 
+                for left, right 
+                in n_gram_generator(words, 2)
+                )
+
+    def best_merge(self):
+        "return the tuple of classes with highest MI change"
+        return max(combinations(self.class_set), key=self.compute_MI_delta)
+
+    def compute_MI_delta(self, to_be_merged):
+        "for given two classes, computes the change of MI after merge"
+        k, l = to_be_merged
+        ...
+
+    def merge(self, to_be_merged):
+        k, l = to_be_merged
+
+
+
+
+
+def main(): 
+    args = parse_args()
+
+    words = (line.strip() for line in args.input)
+
+    table = SmartTable(words)
+
+
+
+if __name__ == '__main__':
+    main()
