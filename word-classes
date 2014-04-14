@@ -2,7 +2,7 @@
 
 # Std library imports
 import argparse
-from itertools import combinations
+from itertools import combinations, islice
 from collections import defaultdict, Counter
 from math import log2
 
@@ -20,40 +20,149 @@ def parse_args():
 
     return parser.parse_args()
 
-def n_gram_generator(iterable, n=2):
-    iterator = iter(iterable)
-    actual_n_gram = deque()
+def main(): 
+    args = parse_args()
 
-    # fill the first n items to deque
-    for _ in range(n):
-        actual_n_gram.append(next(iterator))
+    words = (line.strip().split('/')[0] for line in args.input)
+    table = WordClasses(islice(words, 8000))
 
-    while True:
-        yield tuple(actual_n_gram)
-        actual_n_gram.append(next(iterator))
-        actual_n_gram.popleft()
 
-class MergableClass(object):
-    def __new__(cls, first, second=None):
-        if isinstance(first, str) and second is None:
-            return cls.MergableClassLeafeNode(first)
-        elif isinstance(first, cls.MergableClassBase) and isinstance(second, cls.MergableClassBase):
-            return cls.MergableClassInnerNode(sorted((first, second), key=hash))
-        else:
-            raise TypeError("Constructor accepts one string or two MergableClasses")
+class WordClasses(object):
+    def __init__(self, words):
 
-    class MergableClassBase(object):
-        def __or__(self, other):
-            return MergableClass(self, other)
+        # Load the data
+        classes = list(MergableClass(word) for word in words) 
+        bigrams = list(n_gram_generator(classes, 2))
+        self.N = len(bigrams)
 
-        def merge(self, other):
-            return MergableClass(self, other)
+        # Construct initial set of (one-word) classes
+        self.class_set = { cls for cls, count in Counter(classes).items() if count >= 10 }
 
-    class MergableClassLeafeNode(str, MergableClassBase):
-        pass
+        # Count bigrams (c_k term)
+        self.bigrams_counter = SparseMatrixCounter(bigrams)
 
-    class MergableClassInnerNode(tuple, MergableClassBase):
-        pass
+        # Marginal counts (c_kl, c_kr terms)
+        self.left_counter = Counter(left for left, right in bigrams)
+        self.right_counter = Counter(right for left, right in bigrams)
+
+        # Compute bigrams mutual information (q_k term)
+        self.bigrams_logs = SparseMatrixCounter({
+            bigram : bigram_count / self.N * log2(self.N * bigram_count / (self.left_counter[bigram[0]] * self.right_counter[bigram[1]]))
+            for bigram, bigram_count in self.bigrams_counter.items()
+            })
+
+        # Compute cross sums (s_k term)
+        self.cross_sums = { cls : self.compute_cross_sum(cls) for cls in self.class_set }
+
+        # Initialize the table of losses (L_k term)
+        # (and remember the combination with the minimal loss)
+        self.minimal_loss_combination = None
+        self.minimal_loss = None
+        self.MI_losses = SparseMatrixCounter()
+        for a,b in self.sorted_class_combinations():
+            loss = self.compute_MI_loss(a,b)
+            self.MI_losses[a,b] = loss 
+            if self.minimal_loss is None or loss < self.minimal_loss:
+                self.minimal_loss = loss
+                self.minimal_loss_combination = (a,b)
+
+    def merge(self, a, b):
+        "Merge the classes and update data structures"
+        merged = a | b
+
+        # Update current set of classes
+        self.class_set.remove(a)
+        self.class_set.remove(b)
+        self.class_set.add(merged)
+
+        # Update bigram count table
+        merged_row = self.bigrams_counter.pop_row(a) + self.bigrams_counter.pop_row(b)
+        self.bigrams_counter.insert_row(merged, merged_row)
+        merged_collumn = self.bigrams_counter.pop_collumn(a) + self.bigrams_counter.pop_collumn(b)
+        self.bigrams_counter.insert_collumn(merged, merged_collumn)
+
+        # Update marginal counts
+        self.left_counter[merged] = self.left_counter.pop(a,0) + self.left_counter.pop(b,0)
+        self.right_counter[merged] = self.right_counter.pop(a,0) + self.right_counter.pop(b,0)
+
+        # Update bigram logs
+        # XXX not sure if optimal here (it is n^2 now)
+        # XXX if optimal, move this to the method
+        self.bigrams_logs = SparseMatrixCounter({
+            bigram : bigram_count / self.N * log2(self.N * bigram_count / (self.left_counter[bigram[0]] * self.right_counter[bigram[1]]))
+            for bigram, bigram_count in self.bigrams_counter.items()
+            })
+
+        # Update cross sums 
+        # XXX not sure if optimal here (it is n^2 now)
+        # XXX if optimal, move this to the method
+        self.cross_sums = { cls : self.compute_cross_sum(cls) for cls in self.class_set }
+
+    def compute_classes(self, n_classes=1):
+        i = 0
+        while len(self.class_set) > n_classes:
+            a,b = self.minimal_loss_combination
+            
+            i += 1
+            print("Iteration %s, loss %s" % (i, self.minimal_loss)
+
+            self.merge(a,b)
+        
+    def compute_cross_sum(self, a):
+        "Computes s_k from the slide 127"
+        return sum(self.bigrams_logs.get_row(a).values()) \
+             + sum(self.bigrams_logs.get_collumn(a).values()) \
+             - self.bigrams_logs[a,a]
+    
+    def compute_sub_term(self, a, b):
+        "Computes the sub term from the slide 127"
+        return self.cross_sums[a] \
+             + self.cross_sums[b] \
+             - self.bigrams_logs[a,b] \
+             - self.bigrams_logs[b,a]
+
+    def compute_add_term(self, a, b):
+        "Computes the add term from the slide 128"
+        result = 0
+        
+        # First sum
+        a_b_coll = self.bigrams_counter.get_collumn(a) + self.bigrams_counter.get_collumn(b) # a + b count collumn        
+        right_marginal_count = self.right_counter[a] + self.right_counter[b]
+        for l in set(a_b_coll) - {a,b}:
+            bigram_count = a_b_coll[l]
+            result += bigram_count / self.N * log2(self.N * bigram_count / (self.left_counter[l] * right_marginal_count))
+            
+        # Second sum
+        a_b_row = self.bigrams_counter.get_row(a) + self.bigrams_counter.get_row(b) # a + b count row 
+        left_marginal_count = self.left_counter[a] + self.left_counter[b]
+        for r in set(a_b_row) - {a,b}:
+            bigram_count = a_b_row[r]
+            result += bigram_count / self.N * log2(self.N * bigram_count / (left_marginal_count * self.right_counter[r]))
+
+        # Intersection
+        bigram_count = self.bigrams_counter[a,a] \
+                     + self.bigrams_counter[a,b] \
+                     + self.bigrams_counter[b,a] \
+                     + self.bigrams_counter[b,b] 
+        result += bigram_count / self.N * log2(self.N * bigram_count / (left_marginal_count * right_marginal_count))
+        return result
+
+    def compute_MI_delta(self, a, b):
+        "For given two classes, computes the change of MI after merge"
+        return self.compute_add_term(a,b) - self.compute_sub_term(a,b)
+    
+    def compute_MI_loss(self, a, b):
+        "For given two classes, computes the change of MI after merge"
+        return self.compute_sub_term(a,b) - self.compute_add_term(a,b)
+
+    def compute_MI(self):
+        "Compute actuall Mutual Information (the slow way: it iterates all class combinations)"
+        return sum(self.bigrams_logs.values())
+
+    def sorted_class_combinations(self)
+        "Returns all combinations of current classes. The items in combinations are sorted."
+        for comb in combinations(self.class_set):
+            yield tuple(sorted(comb))
 
 class SparseMatrixCounter(object):
     def __init__(self, iterable=None):
@@ -119,74 +228,51 @@ class SparseMatrixCounter(object):
             for collumn_index, value in row.items():
                 index = (row_index, collumn_index)
                 yield index, value 
+    
+    def values(self):
+        for row in self.rows.values():
+            for value in row.values():
+                yield value 
 
     def __iter__(self):
         for row_index, row in self.rows.items():
             for collumn_index in row:
                 yield row_index, collumn_index
 
-class WordClasses(object):
-    def __init__(self, words):
+class MergableClass(object):
+    def __new__(cls, first, second=None):
+        if isinstance(first, str) and second is None:
+            return cls.MergableClassLeafeNode(first)
+        elif isinstance(first, cls.MergableClassBase) and isinstance(second, cls.MergableClassBase):
+            return cls.MergableClassInnerNode(sorted((first, second), key=hash))
+        else:
+            raise TypeError("Constructor accepts one string or two MergableClasses")
 
-        # Load the data
-        classes = list(MergableClass(word) for word in words) 
-        bigrams = list(n_gram_generator(classes, 2))
+    class MergableClassBase(object):
+        def __or__(self, other):
+            return MergableClass(self, other)
 
-        # Initialize data structures
-        self.class_set = {classes}
-        self.N = len(bigrams)
-        self.bigrams_counter = SparseMatrixCounter(bigrams)
-        self.left_counter = Counter(left for left, right in bigrams)
-        self.right_counter = Counter(right for left, right in bigrams)
-        self.bigrams_logs = SparseMatrixCounter({
-            bigram : self.bigrams_counter[bigram] / self.N * log2(self.N * self.bigrams_counter[bigram] / (self.left_counter[bigram[0]] * self.right_counter[bigram[1]]))
-            for bigram in self.bigrams_counter 
-            })
+        def merge(self, other):
+            return MergableClass(self, other)
 
-    def merge(self, cls_1, cls_2):
-        "Merge the classes and update data structures"
-        merged = cls_1 | cls_2
+    class MergableClassLeafeNode(str, MergableClassBase):
+        pass
 
-        # Update current set of classes
-        self.class_set.remove(cls_1)
-        self.class_set.remove(cls_2)
-        self.class_set.add(merged)
+    class MergableClassInnerNode(tuple, MergableClassBase):
+        pass
 
-        # Update bigram count table
-        merged_row = self.bigrams_counter.pop_row(cls_1) + self.bigrams_counter.pop_row(cls2)
-        self.bigrams_counter.insert_row(merged, merged_row)
-        merged_collumn = self.bigrams_counter.pop_collumn(cls_1) + self.bigrams_counter.pop_collumn(cls2)
-        self.bigrams_counter.insert_collumn(merged, merged_collumn)
+def n_gram_generator(iterable, n=2):
+    iterator = iter(iterable)
+    actual_n_gram = deque()
 
-        # Update marginal counts
-        self.left_counter[merged] = self.left_counter.pop(cls_1,0) + self.left_counter.pop(cls_2,0)
-        self.right_counter[merged] = self.right_counter.pop(cls_1,0) + self.right_counter.pop(cls_2,0)
+    # fill the first n items to deque
+    for _ in range(n):
+        actual_n_gram.append(next(iterator))
 
-    def best_merge(self):
-        "return the tuple of classes with highest MI change"
-        return max(combinations(self.class_set), key=self.compute_MI_delta)
-
-    def compute_MI_delta(self, to_be_merged):
-        "for given two classes, computes the change of MI after merge"
-        k, l = to_be_merged
-        ...
-
-
-
-
-
-
-
-
-
-def main(): 
-    args = parse_args()
-
-    words = (line.strip() for line in args.input)
-
-    table = SmartTable(words)
-
-
+    while True:
+        yield tuple(actual_n_gram)
+        actual_n_gram.append(next(iterator))
+        actual_n_gram.popleft()
 
 if __name__ == '__main__':
     main()
