@@ -76,27 +76,66 @@ class WordClasses(object):
         self.class_set.add(merged)
 
         # Update bigram count table
-        merged_row = self.bigrams_counter.pop_row(a) + self.bigrams_counter.pop_row(b)
-        self.bigrams_counter.insert_row(merged, merged_row)
-        merged_collumn = self.bigrams_counter.pop_collumn(a) + self.bigrams_counter.pop_collumn(b)
-        self.bigrams_counter.insert_collumn(merged, merged_collumn)
+        merged_count_row = self.bigrams_counter.pop_row(a) + self.bigrams_counter.pop_row(b)
+        self.bigrams_counter.insert_row(merged, merged_count_row)
+        merged_count_collumn = self.bigrams_counter.pop_collumn(a) + self.bigrams_counter.pop_collumn(b)
+        self.bigrams_counter.insert_collumn(merged, merged_count_collumn)
 
         # Update marginal counts
         self.left_counter[merged] = self.left_counter.pop(a,0) + self.left_counter.pop(b,0)
         self.right_counter[merged] = self.right_counter.pop(a,0) + self.right_counter.pop(b,0)
 
         # Update bigram logs
-        # XXX not sure if optimal here (it is n^2 now)
-        # XXX if optimal, move this to the method
-        self.bigrams_logs = SparseMatrixCounter({
-            bigram : bigram_count / self.N * log2(self.N * bigram_count / (self.left_counter[bigram[0]] * self.right_counter[bigram[1]]))
-            for bigram, bigram_count in self.bigrams_counter.items()
+        logs_a_old_row = self.bigrams_logs.pop_row(a) 
+        logs_b_old_row = self.bigrams_logs.pop_row(b) 
+        logs_a_old_col = self.bigrams_logs.pop_collumn(a) 
+        logs_b_old_col = self.bigrams_logs.pop_collumn(b) 
+
+        left_merged_margin = self.left_counter[merged]
+        merged_logs_row = Counter({ 
+            r : bigram_count / self.N * log2(self.N * bigram_count / (left_merged_margin * self.right_counter[r])) 
+            r, bigram_count in self.bigrams_counter.get_row(merged)
             })
 
+        right_merged_margin = self.right_counter[merged]
+        merged_logs_collumn = Counter({ 
+            l : bigram_count / self.N * log2(self.N * bigram_count / (self.left_counter[l] * right_merged_margin)) 
+            l, bigram_count in self.bigrams_counter.get_collumn(merged)
+            })
+
+        self.bigrams_logs.insert_row(merged, merged_logs_row)
+        self.bigrams_logs.insert_collumn(merged, merged_logs_collumn) # the logs[merged,merged] is rewriten twice
+
         # Update cross sums 
-        # XXX not sure if optimal here (it is n^2 now)
-        # XXX if optimal, move this to the method
-        self.cross_sums = { cls : self.compute_cross_sum(cls) for cls in self.class_set }
+        old_cross_sums = self.cross_sums
+        self.cross_sums = { 
+                cls : old_sum - logs_a_old_row[cls]
+                              - logs_b_old_row[cls]
+                              - logs_a_old_col[cls]
+                              - logs_b_old_col[cls]
+                              + merged_logs_row[cls]
+                              + merged_logs_collumn[cls]
+                for cls, old_sum in old_cross_sums.items()
+                if cls != a and cls != b
+                }
+        self.cross_sums[merged] = self.compute_cross_sum(merged)
+
+        # Update table of losses
+        # (and remember the combination with the minimal loss)
+        self.minimal_loss_combination = None
+        self.minimal_loss = None
+
+        old_MI_losses = self.MI_losses
+
+        self.MI_losses = SparseMatrixCounter()
+        for a,b in self.sorted_class_combinations():
+            loss = self.compute_MI_loss(a,b)
+            self.MI_losses[a,b] = loss 
+            if self.minimal_loss is None or loss < self.minimal_loss:
+                self.minimal_loss = loss
+                self.minimal_loss_combination = (a,b)
+
+
 
     def compute_classes(self, n_classes=1):
         i = 0
