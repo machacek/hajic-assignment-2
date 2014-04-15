@@ -47,7 +47,7 @@ class WordClasses(object):
 
         # Compute bigrams mutual information (q_k term)
         self.bigrams_logs = SparseMatrixCounter({
-            bigram : bigram_count / self.N * log2(self.N * bigram_count / (self.left_counter[bigram[0]] * self.right_counter[bigram[1]]))
+            bigram : self.compute_q(bigram_count, self.left_counter[bigram[0]], self.right_counter[bigram[1]])
             for bigram, bigram_count in self.bigrams_counter.items()
             })
 
@@ -56,15 +56,12 @@ class WordClasses(object):
 
         # Initialize the table of losses (L_k term)
         # (and remember the combination with the minimal loss)
-        self.minimal_loss_combination = None
-        self.minimal_loss = None
         self.MI_losses = SparseMatrixCounter()
+        self.reset_minimal_loss()
         for a,b in self.sorted_class_combinations():
             loss = self.compute_MI_loss(a,b)
             self.MI_losses[a,b] = loss 
-            if self.minimal_loss is None or loss < self.minimal_loss:
-                self.minimal_loss = loss
-                self.minimal_loss_combination = (a,b)
+            self.remember_minimal_loss((a,b), loss)
 
     def merge(self, a, b):
         "Merge the classes and update data structures"
@@ -76,30 +73,38 @@ class WordClasses(object):
         self.class_set.add(merged)
 
         # Update bigram count table
-        merged_count_row = self.bigrams_counter.pop_row(a) + self.bigrams_counter.pop_row(b)
-        self.bigrams_counter.insert_row(merged, merged_count_row)
-        merged_count_collumn = self.bigrams_counter.pop_collumn(a) + self.bigrams_counter.pop_collumn(b)
-        self.bigrams_counter.insert_collumn(merged, merged_count_collumn)
+        a_count_row = self.bigrams_counter.pop_row(a)
+        b_count_row = self.bigrams_counter.pop_row(b)
+        self.bigrams_counter.insert_row(merged, a_count_row + b_count_row)
+
+        a_count_col = self.bigrams_counter.pop_collumn(a)
+        b_count_col = self.bigrams_counter.pop_collumn(b)
+        self.bigrams_counter.insert_collumn(merged, a_count_col + b_count_col)
 
         # Update marginal counts
-        self.left_counter[merged] = self.left_counter.pop(a,0) + self.left_counter.pop(b,0)
-        self.right_counter[merged] = self.right_counter.pop(a,0) + self.right_counter.pop(b,0)
+        left_margin_a = self.left_counter.pop(a,0)
+        left_margin_b = self.left_counter.pop(b,0)
+        self.left_counter[merged] = left_margin_a + left_margin_b
+
+        right_margin_a = self.right_counter.pop(a,0)
+        right_margin_b = self.right_counter.pop(b,0)
+        self.right_counter[merged] = right_margin_a + right_margin_b
 
         # Update bigram logs
-        logs_a_old_row = self.bigrams_logs.pop_row(a) 
-        logs_b_old_row = self.bigrams_logs.pop_row(b) 
-        logs_a_old_col = self.bigrams_logs.pop_collumn(a) 
-        logs_b_old_col = self.bigrams_logs.pop_collumn(b) 
+        a_logs_row = self.bigrams_logs.pop_row(a) 
+        b_logs_row = self.bigrams_logs.pop_row(b) 
+        a_logs_col = self.bigrams_logs.pop_collumn(a) 
+        b_logs_col = self.bigrams_logs.pop_collumn(b) 
 
         left_merged_margin = self.left_counter[merged]
         merged_logs_row = Counter({ 
-            r : bigram_count / self.N * log2(self.N * bigram_count / (left_merged_margin * self.right_counter[r])) 
+            r : self.compute_q(bigram_count, left_merged_margin, self.right_counter[r])
             r, bigram_count in self.bigrams_counter.get_row(merged)
             })
 
         right_merged_margin = self.right_counter[merged]
         merged_logs_collumn = Counter({ 
-            l : bigram_count / self.N * log2(self.N * bigram_count / (self.left_counter[l] * right_merged_margin)) 
+            l : self.compute_q(bigram_count, self.left_counter[l], right_merged_margin)
             l, bigram_count in self.bigrams_counter.get_collumn(merged)
             })
 
@@ -109,11 +114,11 @@ class WordClasses(object):
         # Update cross sums 
         old_cross_sums = self.cross_sums
         self.cross_sums = { 
-                cls : old_sum - logs_a_old_row[cls]
-                              - logs_b_old_row[cls]
-                              - logs_a_old_col[cls]
-                              - logs_b_old_col[cls]
-                              + merged_logs_row[cls]
+                cls : old_sum - a_logs_row[cls] \
+                              - b_logs_row[cls] \
+                              - a_logs_col[cls] \
+                              - b_logs_row[cls] \
+                              + merged_logs_row[cls] \
                               + merged_logs_collumn[cls]
                 for cls, old_sum in old_cross_sums.items()
                 if cls != a and cls != b
@@ -122,36 +127,56 @@ class WordClasses(object):
 
         # Update table of losses
         # (and remember the combination with the minimal loss)
-        self.minimal_loss_combination = None
-        self.minimal_loss = None
-
         self.MI_losses.pop_row(a)
         self.MI_losses.pop_row(b)
         self.MI_losses.pop_collumn(a)
         self.MI_losses.pop_collumn(b)
 
-        
+        self.reset_minimal_loss()
+        for (i,j), old_loss in self.MI_losses::
+            loss = old_loss - old_cross_sums[i] \
+                            - old_cross_sums[j] \
+                            + self.cross_sums[i] \
+                            + self.cross_sums[j] \
+                            + self.compute_q(a_count_col[i] + a_count_col[j], self.left_counter[i] + self.left_counter[j], right_margin_a) \
+                            + self.compute_q(a_count_row[i] + a_count_row[j], left_margin_a, self.right_counter[i] + self.right_counter[j]) \
+                            + self.compute_q(b_count_col[i] + b_count_col[j], self.left_counter[i] + self.left_counter[j], right_margin_b) \
+                            + self.compute_q(b_count_row[i] + b_count_row[j], left_margin_b, self.right_counter[i] + self.right_counter[j]) \
+                            - self.compute_q(self.bigrams_counter[i,merged] + self.bigrams_counter[j,merged], self.left_counter[i] + self.left_counter[j], self.right_counter[merged] \
+                            - self.compute_q(self.bigrams_counter[merged,i] + self.bigrams_counter[merged,j], self.left_counter[merged], self.right_counter[i] + self.right_counter[j])
+            
+            self.MI_losses[i,j] = loss 
+            self.remember_minimal_loss((i,j), loss)
 
-        for (a,b), old_loss in self.MI_losses::
-
-
-            loss = self.compute_MI_loss(a,b)
-            self.MI_losses[a,b] = loss 
-            if self.minimal_loss is None or loss < self.minimal_loss:
-                self.minimal_loss = loss
-                self.minimal_loss_combination = (a,b)
-
-
+        for i in self.class_set - {merged}:
+            combination = tuple(sorted([i,merged]))
+            loss = self.compute_MI_loss(*combination)
+            self.MI_losses[combination] = loss 
+            self.remember_minimal_loss(combination, loss)
 
     def compute_classes(self, n_classes=1):
+    
         i = 0
+        print("Initial MI:", self.compute_MI(), "Minimal loss:", self.minimal_loss)
+
         while len(self.class_set) > n_classes:
             a,b = self.minimal_loss_combination
+            self.merge(a,b)
             
             i += 1
-            print("Iteration %s, loss %s" % (i, self.minimal_loss)
+            print("Iteration:", i, "MI:", self.compute_MI(), "Minimal loss:", self.minimal_loss)
+        
+    def reset_minimal_loss(self):
+        self.minimal_loss_combination = None
+        self.minimal_loss = None
 
-            self.merge(a,b)
+    def remember_minimal_loss(self, combination, loss):
+        if self.minimal_loss is None or loss < self.minimal_loss:
+            self.minimal_loss = loss
+            self.minimal_loss_combination = combination
+
+    def compute_q(self, bigram_count, left_marginal_count, right_marginal_count):
+        return bigram_count / self.N * log2(self.N * bigram_count / (left_marginal_count * right_marginal_count))
         
     def compute_cross_sum(self, a):
         "Computes s_k from the slide 127"
@@ -171,25 +196,23 @@ class WordClasses(object):
         result = 0
         
         # First sum
-        a_b_coll = self.bigrams_counter.get_collumn(a) + self.bigrams_counter.get_collumn(b) # a + b count collumn        
+        a_plus_b_coll = self.bigrams_counter.get_collumn(a) + self.bigrams_counter.get_collumn(b) # a + b count collumn        
         right_marginal_count = self.right_counter[a] + self.right_counter[b]
-        for l in set(a_b_coll) - {a,b}:
-            bigram_count = a_b_coll[l]
-            result += bigram_count / self.N * log2(self.N * bigram_count / (self.left_counter[l] * right_marginal_count))
+        for l in set(a_plus_b_coll) - {a,b}:
+            result += self.compute_q(a_plus_b_coll[l], self.left_counter[l], right_marginal_count)
             
         # Second sum
-        a_b_row = self.bigrams_counter.get_row(a) + self.bigrams_counter.get_row(b) # a + b count row 
+        a_plus_b_row = self.bigrams_counter.get_row(a) + self.bigrams_counter.get_row(b) # a + b count row 
         left_marginal_count = self.left_counter[a] + self.left_counter[b]
-        for r in set(a_b_row) - {a,b}:
-            bigram_count = a_b_row[r]
-            result += bigram_count / self.N * log2(self.N * bigram_count / (left_marginal_count * self.right_counter[r]))
+        for r in set(a_plus_b_row) - {a,b}:
+            result += self.compute_q(a_plus_b_row[r], left_marginal_count, self.right_counter[r])
 
         # Intersection
         bigram_count = self.bigrams_counter[a,a] \
                      + self.bigrams_counter[a,b] \
                      + self.bigrams_counter[b,a] \
                      + self.bigrams_counter[b,b] 
-        result += bigram_count / self.N * log2(self.N * bigram_count / (left_marginal_count * right_marginal_count))
+        result += self.compute_q(bigram_count, left_marginal_count, right_marginal_count)
         return result
 
     def compute_MI_delta(self, a, b):
