@@ -125,10 +125,16 @@ class WordClasses(object):
         self.minimal_loss_combination = None
         self.minimal_loss = None
 
-        old_MI_losses = self.MI_losses
+        self.MI_losses.pop_row(a)
+        self.MI_losses.pop_row(b)
+        self.MI_losses.pop_collumn(a)
+        self.MI_losses.pop_collumn(b)
 
-        self.MI_losses = SparseMatrixCounter()
-        for a,b in self.sorted_class_combinations():
+        
+
+        for (a,b), old_loss in self.MI_losses::
+
+
             loss = self.compute_MI_loss(a,b)
             self.MI_losses[a,b] = loss 
             if self.minimal_loss is None or loss < self.minimal_loss:
