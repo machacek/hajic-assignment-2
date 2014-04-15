@@ -3,7 +3,7 @@
 # Std library imports
 import argparse
 from itertools import combinations, islice
-from collections import defaultdict, Counter
+from collections import defaultdict, Counter, deque
 from math import log2
 
 def parse_args():
@@ -25,6 +25,7 @@ def main():
 
     words = (line.strip().split('/')[0] for line in args.input)
     table = WordClasses(islice(words, 8000))
+    table.compute_classes()
 
 
 class WordClasses(object):
@@ -99,13 +100,13 @@ class WordClasses(object):
         left_merged_margin = self.left_counter[merged]
         merged_logs_row = Counter({ 
             r : self.compute_q(bigram_count, left_merged_margin, self.right_counter[r])
-            r, bigram_count in self.bigrams_counter.get_row(merged)
+            for r, bigram_count in self.bigrams_counter.get_row(merged).items()
             })
 
         right_merged_margin = self.right_counter[merged]
         merged_logs_collumn = Counter({ 
             l : self.compute_q(bigram_count, self.left_counter[l], right_merged_margin)
-            l, bigram_count in self.bigrams_counter.get_collumn(merged)
+            for l, bigram_count in self.bigrams_counter.get_collumn(merged).items()
             })
 
         self.bigrams_logs.insert_row(merged, merged_logs_row)
@@ -133,7 +134,7 @@ class WordClasses(object):
         self.MI_losses.pop_collumn(b)
 
         self.reset_minimal_loss()
-        for (i,j), old_loss in self.MI_losses::
+        for (i,j), old_loss in self.MI_losses.items():
             loss = old_loss - old_cross_sums[i] \
                             - old_cross_sums[j] \
                             + self.cross_sums[i] \
@@ -142,7 +143,7 @@ class WordClasses(object):
                             + self.compute_q(a_count_row[i] + a_count_row[j], left_margin_a, self.right_counter[i] + self.right_counter[j]) \
                             + self.compute_q(b_count_col[i] + b_count_col[j], self.left_counter[i] + self.left_counter[j], right_margin_b) \
                             + self.compute_q(b_count_row[i] + b_count_row[j], left_margin_b, self.right_counter[i] + self.right_counter[j]) \
-                            - self.compute_q(self.bigrams_counter[i,merged] + self.bigrams_counter[j,merged], self.left_counter[i] + self.left_counter[j], self.right_counter[merged] \
+                            - self.compute_q(self.bigrams_counter[i,merged] + self.bigrams_counter[j,merged], self.left_counter[i] + self.left_counter[j], self.right_counter[merged]) \
                             - self.compute_q(self.bigrams_counter[merged,i] + self.bigrams_counter[merged,j], self.left_counter[merged], self.right_counter[i] + self.right_counter[j])
             
             self.MI_losses[i,j] = loss 
@@ -176,7 +177,11 @@ class WordClasses(object):
             self.minimal_loss_combination = combination
 
     def compute_q(self, bigram_count, left_marginal_count, right_marginal_count):
-        return bigram_count / self.N * log2(self.N * bigram_count / (left_marginal_count * right_marginal_count))
+        if bigram_count > 0:
+            return bigram_count / self.N * log2(self.N * bigram_count / (left_marginal_count * right_marginal_count))
+        else:
+            # Not sure with that
+            return 0
         
     def compute_cross_sum(self, a):
         "Computes s_k from the slide 127"
@@ -227,9 +232,9 @@ class WordClasses(object):
         "Compute actuall Mutual Information (the slow way: it iterates all class combinations)"
         return sum(self.bigrams_logs.values())
 
-    def sorted_class_combinations(self)
+    def sorted_class_combinations(self):
         "Returns all combinations of current classes. The items in combinations are sorted."
-        for comb in combinations(self.class_set):
+        for comb in combinations(self.class_set, 2):
             yield tuple(sorted(comb))
 
 class SparseMatrixCounter(object):
@@ -248,16 +253,16 @@ class SparseMatrixCounter(object):
             for x, y in iterable:
                 self.add(x,y,1)
     
-    def __set__(self, index, value):
+    def __setitem__(self, index, value):
         row_index, collumn_index = index
         self.rows[row_index][collumn_index]     = value
         self.collumns[collumn_index][row_index] = value
     
-    def __get__(self, index):
+    def __getitem__(self, index):
         row_index, collumn_index = index
         return self.rows.get(row_index, Counter())[collumn_index]
 
-    def add(self, row_index, collumn_index, n=1)
+    def add(self, row_index, collumn_index, n=1):
         self.rows[row_index][collumn_index]     += n
         self.collumns[collumn_index][row_index] += n
 
@@ -312,22 +317,36 @@ class MergableClass(object):
         if isinstance(first, str) and second is None:
             return cls.MergableClassLeafeNode(first)
         elif isinstance(first, cls.MergableClassBase) and isinstance(second, cls.MergableClassBase):
-            return cls.MergableClassInnerNode(sorted((first, second), key=hash))
+            return cls.MergableClassInnerNode(first, second)
         else:
             raise TypeError("Constructor accepts one string or two MergableClasses")
 
     class MergableClassBase(object):
         def __or__(self, other):
-            return MergableClass(self, other)
+            return MergableClass.MergableClassInnerNode(self, other)
 
         def merge(self, other):
-            return MergableClass(self, other)
+            return MergableClass.MergableClassInnerNode(self, other)
 
-    class MergableClassLeafeNode(str, MergableClassBase):
-        pass
+        def __hash__(self):
+            return id(self)
 
-    class MergableClassInnerNode(tuple, MergableClassBase):
-        pass
+        def __eq__(self, other):
+            return id(self) == id(other) 
+
+    class MergableClassLeafeNode(MergableClassBase):
+        def __init__(self, string):
+            self.string = string
+
+        def __str__(self):
+            return self.string
+
+    class MergableClassInnerNode(MergableClassBase):
+        def __init__(self, first, second):
+            self.tuple = tuple(sorted((first, second)))
+        
+        def __str__(self):
+            return "more"
 
 def n_gram_generator(iterable, n=2):
     iterator = iter(iterable)
