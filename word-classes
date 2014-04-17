@@ -158,14 +158,20 @@ class WordClasses(object):
     def compute_classes(self, n_classes=1):
     
         i = 0
-        print("Initial MI:", self.compute_MI(), "Minimal loss:", self.minimal_loss)
+        old_MI = self.compute_MI()
+        old_loss = self.minimal_loss
+        print("Initial MI:", self.compute_MI(), "Minimal loss:", self.minimal_loss, "Merging:", self.minimal_loss_combination[0], self.minimal_loss_combination[1])
 
         while len(self.class_set) > n_classes:
             a,b = self.minimal_loss_combination
             self.merge(a,b)
-            
-            i += 1
-            print("Iteration:", i, "MI:", self.compute_MI(), "Minimal loss:", self.minimal_loss)
+
+            if self.minimal_loss is not None:
+                new_MI = self.compute_MI()
+                i += 1
+                print("Iteration:", i, "MI:", new_MI, "diff:", (old_MI - old_loss) - new_MI, "Merging:", self.minimal_loss_combination[0], self.minimal_loss_combination[1])
+                old_MI = new_MI
+                old_loss = self.minimal_loss
         
     def reset_minimal_loss(self):
         self.minimal_loss_combination = None
@@ -312,14 +318,16 @@ class SparseMatrixCounter(object):
             for collumn_index in row:
                 yield row_index, collumn_index
 
+def get_new_id():
+    MergableClass.new_id += 1
+    return MergableClass.new_id
+
 class MergableClass(object):
-    def __new__(cls, first, second=None):
-        if isinstance(first, str) and second is None:
-            return cls.MergableClassLeafeNode(first)
-        elif isinstance(first, cls.MergableClassBase) and isinstance(second, cls.MergableClassBase):
-            return cls.MergableClassInnerNode(first, second)
-        else:
-            raise TypeError("Constructor accepts one string or two MergableClasses")
+    new_id = 0
+    map_to_id = defaultdict(get_new_id)
+
+    def __new__(cls, word):
+        return cls.MergableClassLeafeNode(word)
 
     class MergableClassBase(object):
         def __or__(self, other):
@@ -329,21 +337,26 @@ class MergableClass(object):
             return MergableClass.MergableClassInnerNode(self, other)
 
         def __hash__(self):
-            return id(self)
+            return hash(self.id)
 
         def __eq__(self, other):
-            return id(self) == id(other) 
+            return self.id == other.id
+
+        def __lt__(self, other):
+            return self.id < other.id
 
     class MergableClassLeafeNode(MergableClassBase):
         def __init__(self, string):
             self.string = string
+            self.id = MergableClass.map_to_id[string]
 
         def __str__(self):
             return self.string
 
     class MergableClassInnerNode(MergableClassBase):
         def __init__(self, first, second):
-            self.tuple = tuple(sorted((first, second)))
+            self.tuple = tuple(sorted((first, second))) 
+            self.id = MergableClass.map_to_id[self.tuple]
         
         def __str__(self):
             return "more"
