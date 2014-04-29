@@ -4,7 +4,7 @@
 import argparse
 from itertools import combinations, islice
 from collections import defaultdict, Counter, deque
-from math import log2
+from math import log2, log
 
 def parse_args():
     
@@ -160,16 +160,19 @@ class WordClasses(object):
         i = 0
         old_MI = self.compute_MI()
         old_loss = self.minimal_loss
-        print("Initial MI:", self.compute_MI(), "Minimal loss:", self.minimal_loss, "Merging:", self.minimal_loss_combination[0], self.minimal_loss_combination[1])
+        #print("Initial MI:", self.compute_MI(), "Minimal loss:", self.minimal_loss, "Merging:", self.minimal_loss_combination[0], self.minimal_loss_combination[1])
 
         while len(self.class_set) > n_classes:
+            self.bigrams_counter.check_integrity()
+            self.bigrams_logs.check_integrity()
+
             a,b = self.minimal_loss_combination
             self.merge(a,b)
 
             if self.minimal_loss is not None:
                 new_MI = self.compute_MI()
                 i += 1
-                print("Iteration:", i, "MI:", new_MI, "diff:", (old_MI - old_loss) - new_MI, "Merging:", self.minimal_loss_combination[0], self.minimal_loss_combination[1])
+                #print("Iteration:", i, "MI:", new_MI, "actual loss", old_MI - new_MI, "predicted loss", old_loss, "diff:", (old_MI - old_loss) - new_MI, "Merging:", self.minimal_loss_combination[0], self.minimal_loss_combination[1])
                 old_MI = new_MI
                 old_loss = self.minimal_loss
         
@@ -317,6 +320,23 @@ class SparseMatrixCounter(object):
         for row_index, row in self.rows.items():
             for collumn_index in row:
                 yield row_index, collumn_index
+
+    def check_integrity(self):
+        for row_index, row in self.rows.items():
+            for collumn_index, value in row.items():
+                if self.collumns[collumn_index][row_index] != value:
+                    raise ValueError("Values are not equal in the two indexes")
+                if value == 0:
+                    raise ValueError("Value is zero")
+        
+        for collumn_index, collumn in self.collumns.items():
+            for row_index, value in collumn.items():
+                if self.rows[row_index][collumn_index] != value:
+                    raise ValueError("Values are not equal in the two indexes")
+                if value == 0:
+                    raise ValueError("Value is zero")
+
+        
 
 def get_new_id():
     MergableClass.new_id += 1
