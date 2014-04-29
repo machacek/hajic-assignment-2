@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 # Std library imports
+import sys
 import argparse
 from itertools import combinations, islice
 from collections import defaultdict, Counter, deque
@@ -156,25 +157,21 @@ class WordClasses(object):
             self.remember_minimal_loss(combination, loss)
 
     def compute_classes(self, n_classes=1):
-    
+
+        print("Initial MI:", self.compute_MI(), file=sys.stderr)
+       
         i = 0
-        old_MI = self.compute_MI()
-        old_loss = self.minimal_loss
-        #print("Initial MI:", self.compute_MI(), "Minimal loss:", self.minimal_loss, "Merging:", self.minimal_loss_combination[0], self.minimal_loss_combination[1])
-
         while len(self.class_set) > n_classes:
-            self.bigrams_counter.check_integrity()
-            self.bigrams_logs.check_integrity()
-
             a,b = self.minimal_loss_combination
+            predicted_loss = self.minimal_loss
+            before_merge_MI = self.compute_MI()
+
+            print("Merging:", a, b, "Predicted:", predicted_loss, end=' ', file=sys.stderr)
+
             self.merge(a,b)
 
-            if self.minimal_loss is not None:
-                new_MI = self.compute_MI()
-                i += 1
-                #print("Iteration:", i, "MI:", new_MI, "actual loss", old_MI - new_MI, "predicted loss", old_loss, "diff:", (old_MI - old_loss) - new_MI, "Merging:", self.minimal_loss_combination[0], self.minimal_loss_combination[1])
-                old_MI = new_MI
-                old_loss = self.minimal_loss
+            actuall_loss = before_merge_MI - self.compute_MI()
+            print("Actual:", actuall_loss, "Diff:", actuall_loss - predicted_loss, file=sys.stderr)            
         
     def reset_minimal_loss(self):
         self.minimal_loss_combination = None
@@ -371,7 +368,7 @@ class MergableClass(object):
             self.id = MergableClass.map_to_id[string]
 
         def __str__(self):
-            return self.string
+            return "<%s: %s>" % (self.id, self.string)
 
     class MergableClassInnerNode(MergableClassBase):
         def __init__(self, first, second):
@@ -379,7 +376,7 @@ class MergableClass(object):
             self.id = MergableClass.map_to_id[self.tuple]
         
         def __str__(self):
-            return "more"
+            return "<%s>" % self.id
 
 def n_gram_generator(iterable, n=2):
     iterator = iter(iterable)
