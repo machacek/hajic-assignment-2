@@ -22,7 +22,25 @@ def parse_args():
     parser.add_argument("--target",
             help="Target number of classes",
             type=int,
-            default=1,
+            default=15,
+            )
+    
+    parser.add_argument("--limit",
+            help="Number words used",
+            type=int,
+            default=8000,
+            )
+    
+    parser.add_argument("--treshold",
+            help="Treshold of filtered out words",
+            type=int,
+            default=10,
+            )
+    
+    parser.add_argument("--factor",
+            help="Factor to be used",
+            type=int,
+            default=0,
             )
 
     return parser.parse_args()
@@ -30,13 +48,21 @@ def parse_args():
 def main(): 
     args = parse_args()
 
-    words = (line.strip().split('/')[0] for line in args.input)
-    table = WordClasses(islice(words, 8000))
+    # Prepare words
+    words = (line.strip().split('/')[args.factor] for line in args.input)
+
+    # Create table and merge classes until the target number of classes is reached
+    table = WordClasses(islice(words, args.limit), treshold=args.treshold)
     table.compute_classes(args.target)
+
+    # Print the class members
+    print()
+    for cls in table.class_set:
+        print(str(list(sorted(cls)))) 
 
 
 class WordClasses(object):
-    def __init__(self, words):
+    def __init__(self, words, treshold=10):
 
         # Load the data
         classes = list(MergableClass(word) for word in words) 
@@ -44,7 +70,7 @@ class WordClasses(object):
         self.N = len(bigrams)
 
         # Construct initial set of (one-word) classes
-        self.class_set = { cls for cls, count in Counter(classes).items() if count >= 10 }
+        self.class_set = { cls for cls, count in Counter(classes).items() if count >= treshold }
 
         # Count bigrams (c_k term)
         self.bigrams_counter = SparseMatrixCounter(bigrams)
