@@ -18,6 +18,12 @@ def parse_args():
             help="An input file with words (one word per line)",
             type=argparse.FileType('r')
             )
+    
+    parser.add_argument("--target",
+            help="Target number of classes",
+            type=int,
+            default=1,
+            )
 
     return parser.parse_args()
 
@@ -26,7 +32,7 @@ def main():
 
     words = (line.strip().split('/')[0] for line in args.input)
     table = WordClasses(islice(words, 8000))
-    table.compute_classes()
+    table.compute_classes(args.target)
 
 
 class WordClasses(object):
@@ -67,6 +73,7 @@ class WordClasses(object):
 
     def merge(self, a, b):
         "Merge the classes and update data structures"
+        
         merged = a | b
 
         # Update current set of classes
@@ -119,7 +126,7 @@ class WordClasses(object):
                 cls : old_sum - a_logs_row[cls] \
                               - b_logs_row[cls] \
                               - a_logs_col[cls] \
-                              - b_logs_row[cls] \
+                              - b_logs_col[cls] \
                               + merged_logs_row[cls] \
                               + merged_logs_collumn[cls]
                 for cls, old_sum in old_cross_sums.items()
@@ -157,21 +164,12 @@ class WordClasses(object):
             self.remember_minimal_loss(combination, loss)
 
     def compute_classes(self, n_classes=1):
-
-        print("Initial MI:", self.compute_MI(), file=sys.stderr)
-       
-        i = 0
-        while len(self.class_set) > n_classes:
+        """"The main loop"""
+        print("Initial MI:", self.compute_MI())
+        while len(self.class_set) > n_classes and self.minimal_loss_combination is not None:
             a,b = self.minimal_loss_combination
-            predicted_loss = self.minimal_loss
-            before_merge_MI = self.compute_MI()
-
-            print("Merging:", a, b, "Predicted:", predicted_loss, end=' ', file=sys.stderr)
-
+            print("loss:", self.minimal_loss, a, "+", b, "->", a | b)
             self.merge(a,b)
-
-            actuall_loss = before_merge_MI - self.compute_MI()
-            print("Actual:", actuall_loss, "Diff:", actuall_loss - predicted_loss, file=sys.stderr)            
         
     def reset_minimal_loss(self):
         self.minimal_loss_combination = None
@@ -368,7 +366,13 @@ class MergableClass(object):
             self.id = MergableClass.map_to_id[string]
 
         def __str__(self):
-            return "<%s: %s>" % (self.id, self.string)
+            return "<%s:%s>" % (self.id, self.string)
+        
+        def __repr__(self):
+            return "<%s:%s>" % (self.id, self.string)
+
+        def __iter__(self):
+            yield self.string
 
     class MergableClassInnerNode(MergableClassBase):
         def __init__(self, first, second):
@@ -377,6 +381,15 @@ class MergableClass(object):
         
         def __str__(self):
             return "<%s>" % self.id
+        
+        def __repr__(self):
+            return "<%s>" % self.id
+
+        def __iter__(self):
+            for word in self.tuple[0]:
+                yield word
+            for word in self.tuple[1]:
+                yield word
 
 def n_gram_generator(iterable, n=2):
     iterator = iter(iterable)
