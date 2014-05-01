@@ -214,7 +214,7 @@ class WordClasses(object):
         print("Initial MI:", self.compute_MI(), file=sys.stderr)
         while len(self.class_set) > n_classes and self.minimal_loss_combination is not None:
             a,b = self.minimal_loss_combination
-            print("Merging:", a, b, "(%s)" % self.minimal_loss, file=sys.stderr)
+            print("Merging", a, b, "to", a | b, "(%s)" % self.minimal_loss, file=sys.stderr)
             self.merge(a,b)
     
     def compute_linkage_matrix(self):
