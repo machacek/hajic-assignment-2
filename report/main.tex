@@ -45,26 +45,26 @@ The best bigrams for English data are:
 
 \begin{verbatim}
 $ ./best-friends data/TEXTEN1.txt | head -n20
-La Plata 14.169357423498985
-Asa Gray 14.03185389974905
-Fritz Muller 13.362002501441381
-worth while 13.332856155781865
-faced tumbler 13.262466827890467
-lowly organised 13.216885793581572
-Malay Archipelago 13.110463734445418
-shoulder stripe 13.05388020607905
-Great Britain 12.91454352447016
-United States 12.847429328611623
-English carrier 12.525501233724261
-specially endowed 12.401803509499358
-branched off 12.377350465774818
-Sir J 12.377350465774818
-mental qualities 12.362002501441381
-de Candolle 12.362002501441381
-Galapagos Archipelago 12.34492898808244
-red clover 12.323867372554611
-self fertilisation 12.316914611912845
-systematic affinity 12.251819583690958
+La Plata             	14.169357423498985
+Asa Gray             	14.03185389974905
+Fritz Muller         	13.362002501441381
+worth while          	13.332856155781865
+faced tumbler        	13.262466827890467
+lowly organised      	13.216885793581572
+Malay Archipelago    	13.110463734445418
+shoulder stripe      	13.05388020607905
+Great Britain        	12.91454352447016
+United States        	12.847429328611623
+English carrier      	12.525501233724261
+specially endowed    	12.401803509499358
+branched off         	12.377350465774818
+Sir J                	12.377350465774818
+mental qualities     	12.362002501441381
+de Candolle          	12.362002501441381
+Galapagos Archipelago	12.34492898808244
+red clover           	12.323867372554611
+self fertilisation   	12.316914611912845
+systematic affinity  	12.251819583690958
 \end{verbatim}
 
 Words in bigrams with high PMI occure together very often, much more often than they would occure by chance. 
@@ -74,91 +74,117 @@ rarer than they would be by chance. Notice that these bigrams are ungramatical.
 
 \begin{verbatim}
 $ ./best-friends data/TEXTEN1.txt | tail -n10
-. in -6.925231261933459
-the be -6.961518511352832
-and . -7.143326747970616
-to of -7.5902219751733195
-in of -7.656254349837409
-a , -7.704136629860281
-. of -7.901707708878336
-of . -7.901963301941435
-. the -8.407212496263542
-the , -8.790298280455662
+. in  	-6.925231261933459
+the be	-6.961518511352832
+and . 	-7.143326747970616
+to of 	-7.5902219751733195
+in of 	-7.656254349837409
+a ,   	-7.704136629860281
+. of  	-7.901707708878336
+of .  	-7.901963301941435
+. the 	-8.407212496263542
+the , 	-8.790298280455662
 \end{verbatim}
 
+\noindent
 The best bigrams for Czech data are:
 \begin{verbatim}
 $ ./best-friends data/TEXTCZ1.txt | head -n20
-Hamburger SV 14.28893742872069
-Los Angeles 14.062428898912009
-Johna Newcomba 13.762868617053101
-Č. Budějovice 13.633585600108136
-série ATP 13.468954898335337
-turnajové série 13.434397676298966
-Tomáš Ježek 13.428967880499664
-Lidové noviny 13.329909209776995
-Lidových novin 13.271015520723427
-veřejného mínění 13.062428898912009
-teplota minus 12.981508903528443
-Ján Čarnogurský 12.955513694995497
-jaderné zbraně 12.955513694995497
-Milan Máčala 12.89779819713921
-lidských práv 12.862864407029823
-společném státě 12.708420833030726
-akciových společností 12.692479289161703
-Pohár UEFA 12.625365093303166
-privatizačních projektů 12.615663692110873
-George Bushe 12.602997280274712
+Hamburger SV            	14.28893742872069
+Los Angeles             	14.062428898912009
+Johna Newcomba          	13.762868617053101
+Č. Budějovice           	13.633585600108136
+série ATP               	13.468954898335337
+turnajové série         	13.434397676298966
+Tomáš Ježek             	13.428967880499664
+Lidové noviny           	13.329909209776995
+Lidových novin          	13.271015520723427
+veřejného mínění        	13.062428898912009
+teplota minus           	12.981508903528443
+Ján Čarnogurský         	12.955513694995497
+jaderné zbraně          	12.955513694995497
+Milan Máčala            	12.89779819713921
+lidských práv           	12.862864407029823
+společném státě         	12.708420833030726
+akciových společností   	12.692479289161703
+Pohár UEFA              	12.625365093303166
+privatizačních projektů 	12.615663692110873
+George Bushe            	12.602997280274712
 \end{verbatim}
 
+\noindent
 And again the worst bigrams for Czech are:
 
 \begin{verbatim}
 $ ./best-friends data/TEXTCZ1.txt | tail -n10
-Hamburger SV 14.28893742872069
-na se -5.328682342026962
-pro , -5.376274251659302
-k . -5.4655332190036985
-a - -5.684060946055373
-: , -6.148968789595148
-. že -6.623598065235951
-( . -6.667167080173349
-na . -7.265274956951429
-. se -7.617631223474138
-, . -8.061840693318867
+Hamburger SV	14.28893742872069
+na se       	-5.328682342026962
+pro ,       	-5.376274251659302
+k .         	-5.4655332190036985
+a -         	-5.684060946055373
+: ,         	-6.148968789595148
+. že        	-6.623598065235951
+( .         	-6.667167080173349
+na .        	-7.265274956951429
+. se        	-7.617631223474138
+, .         	-8.061840693318867
 \end{verbatim}
 
 \subsection{Best Distant Friends}
 
+In this section I computed Pointwise Mutual Information for pairs of words with
+maximal distance 50. The words in pair with high PMI occure close to each other
+more often than they would occure by chance. 
+
 The best distant friends for English data are:
 \begin{verbatim}
 $ ./best-friends data/TEXTEN1.txt --distance 50 | head -n20
-dried floated 8.788375764087052
-La Plata 8.662844882003192
-floated dried 8.61845076264474
-eastern Pacific 8.40986414083332
-Asa Gray 8.387837834503323
-dried germinated 8.328944145449753
-avicularia vibracula 8.284333258749463
-dried dried 8.27380259125729
-shoulder stripe 8.187471719496873
-stripe shoulder 8.187471719496873
-floated germinated 8.181386957035896
-floated floated 8.16277127886855
-layer hexagonal 8.136299067507355
-survival fittest 8.110303858974413
-dried days 8.068483683279787
-Old Worlds 8.047294061448612
-dimorphic trimorphic 8.031352517579592
-heath heath 8.031352517579592
-geese webbed 7.998795543757421
-clover clover 7.996962385898467
+dried floated       	8.788375764087052
+La Plata            	8.662844882003192
+floated dried       	8.61845076264474
+eastern Pacific     	8.40986414083332
+Asa Gray            	8.387837834503323
+dried germinated    	8.328944145449753
+avicularia vibracula	8.284333258749463
+dried dried         	8.27380259125729
+shoulder stripe     	8.187471719496873
+stripe shoulder     	8.187471719496873
+floated germinated  	8.181386957035896
+floated floated     	8.16277127886855
+layer hexagonal     	8.136299067507355
+survival fittest    	8.110303858974413
+dried days          	8.068483683279787
+Old Worlds          	8.047294061448612
+dimorphic trimorphic	8.031352517579592
+heath heath         	8.031352517579592
+geese webbed        	7.998795543757421
+clover clover       	7.996962385898467
 \end{verbatim}
 
 \noindent
 The best distant friends for Czech data are:
 \begin{verbatim}
-
+$ ./best-friends data/TEXTCZ1.txt --distance 50 | head -n20
+výher výher       	9.82607174717283
+žel žel           	9.106880854734598
+Bělehrad Benfica  	8.922456283597171
+h teplota         	8.87092598295709
+13h 13h           	8.82607174717283
+Sandžaku Sandžaku 	8.796925401513313
+ODÚ VPN           	8.796925401513313
+teplota minus     	8.796925401513313
+Hamburger SV      	8.796925401513313
+Petrof Petrof     	8.756283417015965
+silniční doprava  	8.659421877763378
+Atény Benfica     	8.552506673846866
+13h zataženo      	8.545963827980092
+13h skoro         	8.517949451810496
+CIA CIA           	8.474997306625951
+vychází h         	8.455888483678244
+výher IV          	8.449002098093006
+pořadí výher      	8.426975791763006
+13h st            	8.426975791763006
+Los Angeles       	8.41841377825958
 \end{verbatim}
 
 \section{Word Classes}
