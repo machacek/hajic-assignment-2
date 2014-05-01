@@ -5,7 +5,7 @@
   %\usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 
-\usepackage{url}
+\usepackage{graphicx}
 
 \title{NPFL067 - 2. Domácí úkol}
 \author{Matouš Macháček}
@@ -18,9 +18,150 @@
 
 \section{Best Friends}
 
+The computation of point-wise mutual information is implemented in python
+script \texttt{best-friends}:
+
+\begin{verbatim}
+usage: best-friends [-h] [--distance DISTANCE] input
+
+Finds best word association pairs using the pointwise mutual information
+method.
+
+positional arguments:
+  input                An input file with words (one word per line)
+
+optional arguments:
+  -h, --help           show this help message and exit
+  --distance DISTANCE  Maximal distance of words (default 1 = bigrams)
+
+Author: Matous Machacek <machacekmatous@gmail.com>
+\end{verbatim}
+
+
+
+\subsection{Best Bigram Friends}
+
+The best bigrams for English data are:
+
+\begin{verbatim}
+$ ./best-friends data/TEXTEN1.txt | head -n20
+La Plata 14.169357423498985
+Asa Gray 14.03185389974905
+Fritz Muller 13.362002501441381
+worth while 13.332856155781865
+faced tumbler 13.262466827890467
+lowly organised 13.216885793581572
+Malay Archipelago 13.110463734445418
+shoulder stripe 13.05388020607905
+Great Britain 12.91454352447016
+United States 12.847429328611623
+English carrier 12.525501233724261
+specially endowed 12.401803509499358
+branched off 12.377350465774818
+Sir J 12.377350465774818
+mental qualities 12.362002501441381
+de Candolle 12.362002501441381
+Galapagos Archipelago 12.34492898808244
+red clover 12.323867372554611
+self fertilisation 12.316914611912845
+systematic affinity 12.251819583690958
+\end{verbatim}
+
+Words in bigrams with high PMI occure together very often, much more often than they would occure by chance. 
+
+There are also bigrams with negative PMI. This means that these bigrams are
+rarer than they would be by chance. Notice that these bigrams are ungramatical.
+
+\begin{verbatim}
+$ ./best-friends data/TEXTEN1.txt | tail -n10
+. in -6.925231261933459
+the be -6.961518511352832
+and . -7.143326747970616
+to of -7.5902219751733195
+in of -7.656254349837409
+a , -7.704136629860281
+. of -7.901707708878336
+of . -7.901963301941435
+. the -8.407212496263542
+the , -8.790298280455662
+\end{verbatim}
+
+The best bigrams for Czech data are:
+\begin{verbatim}
+$ ./best-friends data/TEXTCZ1.txt | head -n20
+Hamburger SV 14.28893742872069
+Los Angeles 14.062428898912009
+Johna Newcomba 13.762868617053101
+Č. Budějovice 13.633585600108136
+série ATP 13.468954898335337
+turnajové série 13.434397676298966
+Tomáš Ježek 13.428967880499664
+Lidové noviny 13.329909209776995
+Lidových novin 13.271015520723427
+veřejného mínění 13.062428898912009
+teplota minus 12.981508903528443
+Ján Čarnogurský 12.955513694995497
+jaderné zbraně 12.955513694995497
+Milan Máčala 12.89779819713921
+lidských práv 12.862864407029823
+společném státě 12.708420833030726
+akciových společností 12.692479289161703
+Pohár UEFA 12.625365093303166
+privatizačních projektů 12.615663692110873
+George Bushe 12.602997280274712
+\end{verbatim}
+
+And again the worst bigrams for Czech are:
+
+\begin{verbatim}
+$ ./best-friends data/TEXTCZ1.txt | tail -n10
+Hamburger SV 14.28893742872069
+na se -5.328682342026962
+pro , -5.376274251659302
+k . -5.4655332190036985
+a - -5.684060946055373
+: , -6.148968789595148
+. že -6.623598065235951
+( . -6.667167080173349
+na . -7.265274956951429
+. se -7.617631223474138
+, . -8.061840693318867
+\end{verbatim}
+
+\subsection{Best Distant Friends}
+
+The best distant friends for English data are:
+\begin{verbatim}
+$ ./best-friends data/TEXTEN1.txt --distance 50 | head -n20
+dried floated 8.788375764087052
+La Plata 8.662844882003192
+floated dried 8.61845076264474
+eastern Pacific 8.40986414083332
+Asa Gray 8.387837834503323
+dried germinated 8.328944145449753
+avicularia vibracula 8.284333258749463
+dried dried 8.27380259125729
+shoulder stripe 8.187471719496873
+stripe shoulder 8.187471719496873
+floated germinated 8.181386957035896
+floated floated 8.16277127886855
+layer hexagonal 8.136299067507355
+survival fittest 8.110303858974413
+dried days 8.068483683279787
+Old Worlds 8.047294061448612
+dimorphic trimorphic 8.031352517579592
+heath heath 8.031352517579592
+geese webbed 7.998795543757421
+clover clover 7.996962385898467
+\end{verbatim}
+
+\noindent
+The best distant friends for Czech data are:
+\begin{verbatim}
+
+\end{verbatim}
 
 \section{Word Classes}
-
 The clustering algorithm is implemented in the python script \texttt{word-classes}:
 \begin{verbatim}
 
@@ -48,6 +189,8 @@ Author: Matous Machacek <machacekmatous@gmail.com>
 \end{verbatim}
 
 \subsection{Experiments with English data}
+
+This is the output of the script run with the English data:
 
 \begin{verbatim}
 $ ./word-classes data/TEXTEN1.ptg
@@ -151,19 +294,180 @@ Merging <28:and> <1748> to <1758> (0.05228084075562442)
 Merging <1744> <1754> to <1759> (0.05644448844843535)
 \end{verbatim}
 
-\begin{figure}
+\begin{figure}[h!]
   \centering
   \includegraphics[width=\textwidth]{dendrogram_en}
   \caption{Merge history of English data}
+  \label{dendrogram_en}
 \end{figure}
 
+You can see the history of merges in the dendrogram in the figure \ref{dendrogram_en}.
+The members of the last 15 classes are:
+
+\begin{itemize}
+  \item .
+  \item ,
+  \item the
+  \item of
+  \item to
+  \item I, It, it, there, they, we \textit{(ukazovaci zajmena)}
+  \item ), animals, breeds, case, cases, conditions, facts, individuals, nature, plants, races, species, state, structure, subject, variation, varieties \textit{(nouns)}
+  \item a, any, each, some, their, these, very \textit{(neurcity clen, neurcita zajmena)}
+  \item be, been, not, often, so \textit{(sloveso to be, dalsi)}
+  \item believe, can, cannot, could, do, has, have, is, may, must, see, shall, will, would \textit{(modalni slovesa)}
+  \item ;, In, The, are
+  \item :, at, between, from, in, me, on, only, under \textit{(predlozky)}
+  \item all, by, differ, how, much, nearly, that, this, what, which, with
+  \item (, and, as, but, for, if, or, than, when \textit{(spojky)}
+  \item an, certain, different, distinct, domestic, domesticated, even, great, its, less, long, manner, many, more, most, my, one, other, our, same, several, short, slight, such, wild \textit{(adjektiva, privlastky)}
+\end{itemize}
 
 \subsection{Experiments with Czech data}
 
+This is the output of the script run with the Czech data:
 
+\begin{verbatim}
+$ ./word-classes data/TEXTCZ1.ptg
+Initial MI: 7.5579642207814635
+Merging <509:listopadu> <2153:OKD> to <3686> (0.0030832696793098233)
+Merging <110:který> <550:které> to <3687> (0.0033738533738386783)
+Merging <167:J> <522:státu> to <3688> (0.004025469551221371)
+Merging <162:bude> <661:musí> to <3689> (0.004422152935165138)
+Merging <156:aby> <199:ale> to <3690> (0.0046043582241047445)
+Merging <573:nás> <812:bylo> to <3691> (0.004647629297009209)
+Merging <546:pouze> <875:si> to <3692> (0.004992033285278169)
+Merging <367:mezi> <442:už> to <3693> (0.005000625078134799)
+Merging <777:NATO> <2013:&slash;> to <3694> (0.005561973371130534)
+Merging <95:jeho> <173:ze> to <3695> (0.005564965527577192)
+Merging <257:být> <913:však> to <3696> (0.005743502537787234)
+Merging <24:byl> <388:jsou> to <3697> (0.005750718839854969)
+Merging <711:?> <787:před> to <3698> (0.006000750093761706)
+Merging <391:budou> <1232:jako> to <3699> (0.006250781347668464)
+Merging <20:Na> <3686> to <3700> (0.006392241353892918)
+Merging <61:zákona> <351:při> to <3701> (0.006900281851402339)
+Merging <476:za> <594:u> to <3702> (0.007556757128493512)
+Merging <372:ČSFR> <3688> to <3703> (0.007604054493371509)
+Merging <3687> <3690> to <3704> (0.007741722351558074)
+Merging <33:včera> <3691> to <3705> (0.00776867518172245)
+Merging <113:od> <3693> to <3706> (0.008790818570638743)
+Merging <3689> <3696> to <3707> (0.010211489857351382)
+Merging <3692> <3697> to <3708> (0.010215182757638186)
+Merging <136:po> <213:pro> to <3709> (0.010251281410176338)
+Merging <1:V> <3700> to <3710> (0.010521638598616654)
+Merging <201:to> <3695> to <3711> (0.011671664260760231)
+Merging <132:ve> <3694> to <3712> (0.01181275471879898)
+Merging <3698> <3699> to <3713> (0.0124871300912014)
+Merging <140:že> <3704> to <3714> (0.013125309200968618)
+Merging <43:k> <3701> to <3715> (0.013300457497882744)
+Merging <249:by> <3705> to <3716> (0.01488885903279353)
+Merging <65:do> <3702> to <3717> (0.01590994992893211)
+Merging <18:)> <3703> to <3718> (0.016598384072694816)
+Merging <37:i> <537:je> to <3719> (0.01681443608652665)
+Merging <4::> <3709> to <3720> (0.018074583700848253)
+Merging <3706> <3707> to <3721> (0.018166667359091344)
+Merging <169:z> <3712> to <3722> (0.020810390038167932)
+Merging <14:(> <3708> to <3723> (0.021235199415826175)
+Merging <100:s> <3713> to <3724> (0.024140941888099593)
+Merging <3711> <3715> to <3725> (0.024393058938209228)
+Merging <143:"> <3710> to <3726> (0.025957578044381438)
+Merging <3716> <3719> to <3727> (0.02894681745247208)
+Merging <3717> <3721> to <3728> (0.03295398001318199)
+Merging <19:-> <3720> to <3729> (0.034682288665428565)
+Merging <3718> <3722> to <3730> (0.03761706604297307)
+Merging <38:o> <3723> to <3731> (0.04327473522886691)
+\end{verbatim}
 
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=\textwidth]{dendrogram_cs}
+  \caption{Merge history of Czech data}
+  \label{dendrogram_cs}
+\end{figure}
 
-\section{3. Tag Classes}
+You can see the history of merges in the dendrogram in the figure \ref{dendrogram_cs}.
+The members of the last 15 classes are:
 
+\begin{itemize}
+  \item .
+  \item ?, budou, jako, před, s \textit{(sloveso byt, dalsi)}
+  \item aby, ale, které, který, že \textit{(spojky)}
+  \item ", Na, OKD, V, listopadu
+  \item by, bylo, i, je, nás, včera \textit{(sloveso byt, dalsi)}
+  \item ,
+  \item -, :, po, pro
+  \item /, ), J, NATO, státu, ve, z, ČSFR
+  \item (, byl, jsou, o, pouze, si \textit{(sloveso byt, dalsi)}
+  \item se
+  \item a
+  \item jeho, k, při, to, ze, zákona \textit{(predlozky, dalsi)}
+  \item na
+  \item bude, být, do, mezi, musí, od, u, už, však, za \textit{(sloveso byt, preslozky, castice)}
+  \item v
+\end{itemize}
+
+\section{Tag Classes}
+
+\subsection{Experiments with English data}
+
+The following is the output of the script run on all English tags. You can see
+the history of merges in dendogram in figure \label{dendrogram_en_tags}. Please
+see the caption of this figure for comments.
+
+\begin{verbatim}
+$ ./word-classes --limit 3000000 --target 1 --treshold 5 --factor 1 data/TEXTEN1.ptg
+Initial MI: 0.8833168327193149
+Merging <35:RBR> <36:WP$> to <37> (0.00021893989181066614)
+Merging <28:JJR> <37> to <38> (0.0003488833719744594)
+Merging <27:SYM> <33:NNPS> to <39> (0.0008193622508581428)
+Merging <7:PRP> <31:EX> to <40> (0.0010847100426949494)
+Merging <4:NNP> <34:FW> to <41> (0.0012185934086710825)
+Merging <5:.> <26:(> to <42> (0.0013169373706564602)
+Merging <29:WP> <32:"> to <43> (0.0013896680065684538)
+Merging <9:JJ> <21:JJS> to <44> (0.001736910323866331)
+Merging <30:RBS> <38> to <45> (0.0021076059079176515)
+Merging <1:WRB> <43> to <46> (0.0023076309715684747)
+Merging <11:DT> <20:PRP$> to <47> (0.0026539106901845573)
+Merging <19:CD> <44> to <48> (0.0032880131132933532)
+Merging <39> <41> to <49> (0.003649551622826538)
+Merging <23:WDT> <46> to <50> (0.006007121057711866)
+Merging <6:,> <25::> to <51> (0.005947107169658549)
+Merging <8:VBD> <17:VBN> to <52> (0.006199338355648766)
+Merging <18:VBZ> <24:VBP> to <53> (0.006975469936434029)
+Merging <45> <48> to <54> (0.008532300284386533)
+Merging <3:NN> <10:NNS> to <55> (0.009149213501060682)
+Merging <12:VBG> <50> to <56> (0.011348070425409286)
+Merging <42> <51> to <57> (0.015369873792384102)
+Merging <13:CC> <56> to <58> (0.019129631334640906)
+Merging <14:TO> <15:MD> to <59> (0.026204196250109554)
+Merging <40> <49> to <60> (0.030053632300304747)
+Merging <22:RB> <52> to <61> (0.030873286810821732)
+Merging <16:VB> <53> to <62> (0.03292958503131952)
+Merging <58> <60> to <63> (0.03689142535306704)
+Merging <59> <63> to <64> (0.039301916051218244)
+Merging <61> <62> to <65> (0.04047125404161335)
+Merging <64> <65> to <66> (0.05395257627354961)
+Merging <57> <66> to <67> (0.08058638916593217)
+Merging <47> <54> to <68> (0.07991537216913035)
+Merging <2:IN> <67> to <69> (0.09845339877721546)
+Merging <68> <69> to <70> (0.19133382618914238)
+Merging <55> <70> to <71> (0.03155113147566514)
+\end{verbatim}
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=\textwidth]{dendrogram_en_tags}
+
+  \caption{Merge history of English Tags. The most obvious class contains
+    interpunction: `:,(.'. These tags are clustered together because they are
+    used to delimit sentences. Next interesting cluster contains present and
+    past verbs: VBP, VBZ, VB, VBN, VBD. This cluster also contain the tag RB,
+    which I am not able to explain. Another cluster consists of words, which
+    often stands before nouns. These are JJS, JJ, CD, WP\$, RBR, JJR, RBS,
+    PRP\$ and DT. There is one more interesting issue: when merging last two
+    clusters (one of them contains NN and NNS), the mutual information loss was
+    unusally much lower then previous merges' losses.  }
+
+  \label{dendrogram_en_tags}
+\end{figure}
 
 \end{document}
