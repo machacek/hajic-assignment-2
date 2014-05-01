@@ -496,4 +496,40 @@ Merging <55> <70> to <71> (0.03155113147566514)
   \label{dendrogram_en_tags}
 \end{figure}
 
+\subsection{Experiments with Czech data}
+
+You can see the merge history of Czech tags in figure \ref{dendrogram_cs_tags}. Due
+high number of Czech tags I did not include the full history of merges. These are the
+first 20 merges:
+
+\begin{verbatim}
+$ ./word-classes --limit 300000 --treshold 5 --factor 1 --dendrogram data/TEXTCZ1.ptg  2>&1 | head -n20
+Initial MI: 1.6525346153965323
+Merging <278:CrIP6----------> <728:AAIP6----3A----> to <1016> (-1.0842021724855044e-19)
+Merging <446:J^------------8> <638:NNNXX-----A---8> to <1017> (2.5316081819266477e-06)
+Merging <523:AAFS6----2A----> <569:PSFS6-P1-------> to <1018> (1.1923912097857475e-05)
+Merging <561:PJXP2----------> <702:Vi-P---1--N----> to <1019> (2.0023763840246325e-05)
+Merging <405:AAFS6----3A----> <1018> to <1020> (2.0315624684056786e-05)
+Merging <438:AAIP3----3A----> <675:AGIP3-----A----> to <1021> (2.2728561652467932e-05)
+Merging <305:PSXP6-P1-------> <310:PZXP6----------> to <1022> (2.331637977182467e-05)
+Merging <580:PLXP6----------> <848:AGFP6-----A----> to <1023> (2.3627098816030902e-05)
+Merging <533:AGFS7-----A----> <645:PSFS7-P1-------> to <1024> (2.6114241287928048e-05)
+Merging <852:AAFP7----2A----> <901:AAFP7----1N----> to <1025> (2.7875246298187967e-05)
+Merging <514:AAIS6----1N----> <719:AAIS6----3A----> to <1026> (2.7885673058265542e-05)
+Merging <474:PDFS3----------> <810:ClFS3----------> to <1027> (2.9207679730109716e-05)
+Merging <223:AANP6----1A----> <649:CrNP6----------> to <1028> (2.9252435639684547e-05)
+Merging <151:PSZS6FS3-------> <233:PSZS6-P1-------> to <1029> (3.0473898297922854e-05)
+Merging <625:PE--4----------> <723:P1ZS1FS3-------> to <1030> (3.226689809624481e-05)
+Merging <502:AAFS7----1N----> <669:AUFS7M---------> to <1031> (3.306591032880071e-05)
+Merging <264:ClFS6----------> <387:AAFS6----1N----> to <1032> (3.3826881833880587e-05)
+Merging <797:PZXP7----------> <801:AAIP7----1N----> to <1033> (3.46558147036706e-05)
+Merging <685:PWZS6----------> <1026> to <1034> (3.618569248500564e-05)
+\end{verbatim}
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=\textwidth]{dendrogram_cs_tags}
+  \caption{Merge history of English Czech Tags}
+  \label{dendrogram_cs_tags}
+\end{figure}
 \end{document}
