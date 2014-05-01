@@ -223,16 +223,21 @@ class WordClasses(object):
         # Initialize the class to index mapping 
         cls_to_index = defaultdict(lambda: len(cls_to_index))
         [cls_to_index[cls] for cls in sorted(self.class_set)]
+        
+        print("Initial MI:", self.compute_MI(), file=sys.stderr)
 
         linkage_matrix = []
         while self.minimal_loss_combination is not None:
             a,b = self.minimal_loss_combination
             merged = a | b
             loss = self.minimal_loss
+            
+            print("Merging", a, b, "to", a | b, "(%s)" % loss, file=sys.stderr)
+            
             self.merge(a,b)
 
             # Append the linkage row to the matrix
-            linkage_matrix.append((cls_to_index[a], cls_to_index[b], loss, len(list(merged))))
+            linkage_matrix.append((cls_to_index[a], cls_to_index[b], max(0,loss), len(list(merged))))
 
             # Generate index for the new cluster
             cls_to_index[merged]
