@@ -6,6 +6,8 @@ import argparse
 from itertools import combinations, islice
 from collections import defaultdict, Counter, deque
 from math import log2, log
+from scipy.cluster.hierarchy import dendrogram
+import matplotlib.pyplot as plt
 
 def parse_args():
     
@@ -42,6 +44,17 @@ def parse_args():
             type=int,
             default=0,
             )
+    
+    parser.add_argument("--dendrogram",
+            help="Plot dendrogram",
+            action='store_true'
+            )
+    
+    parser.add_argument("--print_classes",
+            help="Print members of classes",
+            action='store_true'
+            )
+
 
     return parser.parse_args()
 
@@ -51,14 +64,21 @@ def main():
     # Prepare words
     words = (line.strip().split('/')[args.factor] for line in args.input)
 
-    # Create table and merge classes until the target number of classes is reached
+    # Create table
     table = WordClasses(islice(words, args.limit), treshold=args.treshold)
-    table.compute_classes(args.target)
+
+    if args.dendrogram:
+        labels = [cls.string for cls in sorted(table.class_set)]
+        linkage_matrix = table.compute_linkage_matrix()
+        dendrogram(linkage_matrix, labels=labels)
+        plt.show()
+    else:
+        table.compute_classes(args.target)
 
     # Print the class members
-    print()
-    for cls in table.class_set:
-        print(str(list(sorted(cls)))) 
+    if args.print_classes:
+        for cls in table.class_set:
+            print(str(list(sorted(cls)))) 
 
 
 class WordClasses(object):
@@ -190,12 +210,34 @@ class WordClasses(object):
             self.remember_minimal_loss(combination, loss)
 
     def compute_classes(self, n_classes=1):
-        """"The main loop"""
-        print("Initial MI:", self.compute_MI())
+        """The main loop"""
+        print("Initial MI:", self.compute_MI(), file=sys.stderr)
         while len(self.class_set) > n_classes and self.minimal_loss_combination is not None:
             a,b = self.minimal_loss_combination
-            print("loss:", self.minimal_loss, a, "+", b, "->", a | b)
+            print("Merging:", a, b, "(%s)" % self.minimal_loss, file=sys.stderr)
             self.merge(a,b)
+    
+    def compute_linkage_matrix(self):
+        """Similar to compute_classes, it merges all to one class and returns linkage matrix"""
+
+        # Initialize the class to index mapping 
+        cls_to_index = defaultdict(lambda: len(cls_to_index))
+        [cls_to_index[cls] for cls in sorted(self.class_set)]
+
+        linkage_matrix = []
+        while self.minimal_loss_combination is not None:
+            a,b = self.minimal_loss_combination
+            merged = a | b
+            loss = self.minimal_loss
+            self.merge(a,b)
+
+            # Append the linkage row to the matrix
+            linkage_matrix.append((cls_to_index[a], cls_to_index[b], loss, len(list(merged))))
+
+            # Generate index for the new cluster
+            cls_to_index[merged]
+        
+        return linkage_matrix
         
     def reset_minimal_loss(self):
         self.minimal_loss_combination = None
