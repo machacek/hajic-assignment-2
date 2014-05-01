@@ -1,0 +1,169 @@
+\documentclass[12pt,a4paper]{article}
+
+% Babel, písmo, kódování 
+%\usepackage[czech]{babel}
+  %\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+
+\usepackage{url}
+
+\title{NPFL067 - 2. Domácí úkol}
+\author{Matouš Macháček}
+\date{Duben 2014}
+
+% Konec preambule
+
+\begin{document}
+\maketitle
+
+\section{Best Friends}
+
+
+\section{Word Classes}
+
+The clustering algorithm is implemented in the python script \texttt{word-classes}:
+\begin{verbatim}
+
+usage: word-classes [-h] [--target TARGET] [--limit LIMIT]
+                    [--treshold TRESHOLD] [--factor FACTOR] [--dendrogram]
+                    [--print_classes]
+                    input
+
+Compute the word classed for given input
+
+positional arguments:
+  input                An input file with words (one word per line)
+
+optional arguments:
+  -h, --help           show this help message and exit
+  --target TARGET      Target number of classes (default 15)
+  --limit LIMIT        Number of words used (default 8000)
+  --treshold TRESHOLD  Word count treshold for words to be filtered out
+                       (default 10)
+  --factor FACTOR      Factor index to be used (default 0 - word forms)
+  --dendrogram         Plot dendrogram
+  --print_classes      Print members of computed classes
+
+Author: Matous Machacek <machacekmatous@gmail.com>
+\end{verbatim}
+
+\subsection{Experiments with English data}
+
+\begin{verbatim}
+$ ./word-classes data/TEXTEN1.ptg
+Initial MI: 4.996336755075341
+Merging <93:subject> <370:case> to <1663> (0.002196841138718035)
+Merging <117:may> <202:cannot> to <1664> (0.0026694731952487845)
+Merging <332:structure> <498:individuals> to <1665> (0.0026751435455560704)
+Merging <396:It> <502:there> to <1666> (0.0034798353498711743)
+Merging <319:even> <533:less> to <1667> (0.0036560960742388366)
+Merging <346:variation> <463:nature> to <1668> (0.0036914120467206324)
+Merging <350:shall> <351:see> to <1669> (0.0038982831415340473)
+Merging <96:short> <459:slight> to <1670> (0.0039061273281455876)
+Merging <17:certain> <389:distinct> to <1671> (0.003992655875896277)
+Merging <309:such> <510:manner> to <1672> (0.004241939523557956)
+Merging <199:must> <223:can> to <1673> (0.0042634607316114626)
+Merging <462:state> <1663> to <1674> (0.0042771985985941355)
+Merging <452:what> <658:differ> to <1675> (0.0042993323572400564)
+Merging <135:)> <228:cases> to <1676> (0.004456992680885502)
+Merging <67:me> <224:only> to <1677> (0.004478586690182548)
+Merging <136:nearly> <325:how> to <1678> (0.004540771818290197)
+Merging <410:domesticated> <670:domestic> to <1679> (0.004564117568480887)
+Merging <317:varieties> <781:races> to <1680> (0.004613942658421201)
+Merging <320:if> <568:when> to <1681> (0.004763427842353418)
+Merging <133:(> <232:than> to <1682> (0.004873414402153095)
+Merging <152:do> <615:believe> to <1683> (0.004949822233208314)
+Merging <63:my> <454:great> to <1684> (0.005126188804946008)
+Merging <38:will> <81:could> to <1685> (0.005601348554720317)
+Merging <1665> <1668> to <1686> (0.005616969195067777)
+Merging <18:facts> <413:plants> to <1687> (0.005690351254102489)
+Merging <108::> <837:between> to <1688> (0.005755987282144014)
+Merging <358:its> <665:different> to <1689> (0.005812004625037264)
+Merging <166:In> <728:The> to <1690> (0.005976428823747382)
+Merging <341:conditions> <1183:breeds> to <1691> (0.006070815316995323)
+Merging <472:long> <1670> to <1692> (0.006272470950567249)
+Merging <99:these> <263:each> to <1693> (0.006341510670282366)
+Merging <172:would> <1664> to <1694> (0.006574811563169282)
+Merging <84:any> <274:very> to <1695> (0.006828395679660593)
+Merging <140:many> <227:most> to <1696> (0.006841210922396013)
+Merging <248:often> <329:so> to <1697> (0.007052457001314634)
+Merging <349:we> <436:they> to <1698> (0.0071337844956714585)
+Merging <14:much> <1675> to <1699> (0.007268272740868761)
+Merging <1669> <1683> to <1700> (0.007761733830427105)
+Merging <141:more> <1667> to <1701> (0.007964301957705177)
+Merging <53:it> <1666> to <1702> (0.008141855794034921)
+Merging <411:animals> <1676> to <1703> (0.008022489415411355)
+Merging <557:an> <1671> to <1704> (0.008263353461618068)
+Merging <1673> <1694> to <1705> (0.008614868156078183)
+Merging <994:wild> <1672> to <1706> (0.008615058602382899)
+Merging <78:all> <1678> to <1707> (0.009405070003457063)
+Merging <138:but> <1682> to <1708> (0.009567895041032814)
+Merging <1674> <1691> to <1709> (0.00964633453711106)
+Merging <58:one> <308:other> to <1710> (0.009720575454398946)
+Merging <59:our> <1684> to <1711> (0.009772979514822373)
+Merging <162:at> <1677> to <1712> (0.009940644158678829)
+Merging <47:some> <1693> to <1713> (0.010203791266928997)
+Merging <206:several> <1689> to <1714> (0.010270554438372263)
+Merging <50:species> <1680> to <1715> (0.010784620702051495)
+Merging <367:under> <1688> to <1716> (0.011353988090197598)
+Merging <119:for> <1681> to <1717> (0.011383322219228095)
+Merging <304:their> <1695> to <1718> (0.011691206628487362)
+Merging <1687> <1703> to <1719> (0.01189439495427582)
+Merging <1679> <1706> to <1720> (0.01178698311322991)
+Merging <114:same> <1696> to <1721> (0.012663922413863434)
+Merging <1685> <1705> to <1722> (0.012720341805269875)
+Merging <16:with> <57:by> to <1723> (0.014083016627558287)
+Merging <126:not> <1697> to <1724> (0.014298308862549115)
+Merging <1686> <1709> to <1725> (0.015156280484622512)
+Merging <12:I> <1698> to <1726> (0.01523241134356855)
+Merging <1692> <1701> to <1727> (0.01531690964915252)
+Merging <1699> <1707> to <1728> (0.01606177732876749)
+Merging <1704> <1714> to <1729> (0.016533855600104765)
+Merging <54:has> <131:is> to <1730> (0.016744824306466552)
+Merging <43:this> <80:which> to <1731> (0.01674583398585295)
+Merging <9:as> <1708> to <1732> (0.017349526574457774)
+Merging <2:on> <1712> to <1733> (0.01762828488088699)
+Merging <1715> <1719> to <1734> (0.018290427730748557)
+Merging <83:have> <1700> to <1735> (0.018166948617217998)
+Merging <55:been> <1724> to <1736> (0.018452924337823695)
+Merging <1713> <1718> to <1737> (0.01971233131606493)
+Merging <1710> <1721> to <1738> (0.020153892548036366)
+Merging <109:from> <1716> to <1739> (0.021269617173331156)
+Merging <1702> <1726> to <1740> (0.021522208589642013)
+Merging <391:or> <1717> to <1741> (0.021837641219238937)
+Merging <1711> <1729> to <1742> (0.023490613163244422)
+Merging <477:are> <1690> to <1743> (0.023946203211567728)
+Merging <1720> <1727> to <1744> (0.028501082847624103)
+Merging <1725> <1734> to <1745> (0.028743160405714348)
+Merging <1730> <1735> to <1746> (0.028904427209671766)
+Merging <103:a> <1737> to <1747> (0.029237863117324937)
+Merging <1732> <1741> to <1748> (0.02932380713939908)
+Merging <1728> <1731> to <1749> (0.029480566249219995)
+Merging <35:that> <1723> to <1750> (0.029414334083039017)
+Merging <39:be> <1736> to <1751> (0.034019824736969594)
+Merging <1733> <1739> to <1752> (0.03444439927397563)
+Merging <1722> <1746> to <1753> (0.03511052224974118)
+Merging <1738> <1742> to <1754> (0.03765107835232808)
+Merging <98:;> <1743> to <1755> (0.03841268110256334)
+Merging <19:in> <1752> to <1756> (0.04821999715215725)
+Merging <1749> <1750> to <1757> (0.050217854398478444)
+Merging <28:and> <1748> to <1758> (0.05228084075562442)
+Merging <1744> <1754> to <1759> (0.05644448844843535)
+\end{verbatim}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{dendrogram_en}
+  \caption{Merge history of English data}
+\end{figure}
+
+
+\subsection{Experiments with Czech data}
+
+
+
+
+\section{3. Tag Classes}
+
+
+\end{document}

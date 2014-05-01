@@ -22,25 +22,25 @@ def parse_args():
             )
     
     parser.add_argument("--target",
-            help="Target number of classes",
+            help="Target number of classes (default 15)",
             type=int,
             default=15,
             )
     
     parser.add_argument("--limit",
-            help="Number words used",
+            help="Number of words used (default 8000)",
             type=int,
             default=8000,
             )
     
     parser.add_argument("--treshold",
-            help="Treshold of filtered out words",
+            help="Word count treshold for words to be filtered out (default 10)",
             type=int,
             default=10,
             )
     
     parser.add_argument("--factor",
-            help="Factor to be used",
+            help="Factor index to be used (default 0 - word forms)",
             type=int,
             default=0,
             )
@@ -51,7 +51,7 @@ def parse_args():
             )
     
     parser.add_argument("--print_classes",
-            help="Print members of classes",
+            help="Print members of computed classes",
             action='store_true'
             )
 
@@ -70,7 +70,7 @@ def main():
     if args.dendrogram:
         labels = [cls.string for cls in sorted(table.class_set)]
         linkage_matrix = table.compute_linkage_matrix()
-        dendrogram(linkage_matrix, labels=labels)
+        dendrogram(linkage_matrix, labels=labels, orientation="left")
         plt.show()
     else:
         table.compute_classes(args.target)
